@@ -15,6 +15,7 @@ This project processes and analyzes financial transaction data to identify patte
 - **Feature Engineering**: Creates features like transaction velocity and time since signup.
 - **Data Transformation**: Handles class imbalance with SMOTE, scales numerical features, and encodes categorical ones.
 - **Exploratory Data Analysis (EDA)**: Visualizes transaction patterns and fraud distributions.
+- **Project Report**: [Detailed Report](Fraud_Detection_Report.md) covering preprocessing, EDA, feature engineering, and class imbalance.
 
 The pipeline is tested with `pytest` and automated via a GitHub Actions CI/CD workflow.
 
@@ -40,6 +41,7 @@ Improved-detection-of-fraud-cases/
 │   │   ├── ci.yml             # CI/CD pipeline configuration
 ├── requirements.txt            # Python dependencies
 ├── .gitignore                 # Git ignore rules
+├── Fraud_Detection_Report.md   # Detailed project report
 ├── README.md                  # This file
 ```
 
@@ -47,14 +49,20 @@ Improved-detection-of-fraud-cases/
 
 ## 🚀 Getting Started
 
-Follow these steps to set up and run the project on Windows using Visual Studio Code.
+Follow these detailed steps to set up and run the project on Windows using Visual Studio Code (recommended) or any code editor.
 
 ### Prerequisites
 
-- **Python 3.11.9**: [Download](https://www.python.org/downloads/release/python-3119/)
-- **Git**: [Download](https://git-scm.com/downloads)
-- **_vis Studio Code (recommended)
-- Datasets: `Fraud_Data.csv`, `creditcard.csv`, `IpAddress_to_Country.csv` (place in `data/raw/`)
+- **Python 3.11.9**: Download from [python.org](https://www.python.org/downloads/release/python-3119/). Verify with:
+  ```bash
+  python --version
+  ```
+- **Git**: Download from [git-scm.com](https://git-scm.com/downloads). Verify with:
+  ```bash
+  git --version
+  ```
+- **Visual Studio Code** (optional): Install from [code.visualstudio.com](https://code.visualstudio.com/) for a streamlined experience.
+- **Datasets**: Obtain `Fraud_Data.csv`, `creditcard.csv`, and `IpAddress_to_Country.csv` (not included in the repository due to size). Contact [yaredgenanaw99@gmail.com](mailto:yaredgenanaw99@gmail.com) if you need assistance sourcing them.
 
 ### Setup Instructions
 
@@ -63,62 +71,99 @@ Follow these steps to set up and run the project on Windows using Visual Studio 
    git clone https://github.com/yankee998/Improved-detection-of-fraud-cases.git
    cd Improved-detection-of-fraud-cases
    ```
+   - Clones the repository to your local machine (e.g., `C:\Users\Skyline\Improved detection of fraud cases`).
 
-2. **Create a Virtual Environment**:
+2. **Create and Activate a Virtual Environment**:
    ```bash
    python -m venv venv
-   .\venv\Scripts\Activate.ps1
+   .\venv\Scripts\Activate.ps1  # For PowerShell
+   # OR
+   .\venv\Scripts\activate.bat  # For Command Prompt
    ```
+   - Creates an isolated Python environment to manage dependencies.
+   - Verify activation: Prompt should show `(venv)`.
 
 3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
+   - Installs required packages (`pandas==2.2.2`, `scikit-learn==1.5.1`, `imbalanced-learn==0.12.3`, `pytest==8.3.2`, etc.).
+   - Verify installation:
+     ```bash
+     pip list
+     ```
 
-4. **Verify Datasets**:
-   Ensure `data/raw/` contains:
-   - `Fraud_Data.csv`
-   - `creditcard.csv`
-   - `IpAddress_to_Country.csv`
+4. **Set Up Datasets**:
+   - Create a `data/raw/` directory if it doesn’t exist:
+     ```bash
+     mkdir data\raw
+     ```
+   - Place `Fraud_Data.csv`, `creditcard.csv`, and `IpAddress_to_Country.csv` in `data/raw/`.
+   - **Note**: Ensure file names match exactly, as the scripts expect these paths.
+
+5. **Verify Setup**:
+   - Confirm Python version:
+     ```bash
+     python -c "import pandas; print(pandas.__version__)"
+     ```
+     - Expected: `2.2.2`
+   - Test script execution:
+     ```bash
+     python src/data_preprocessing.py
+     ```
+     - Should create `data/processed/Fraud_Data_cleaned.csv`, etc., without errors.
+
+### Troubleshooting Setup
+
+- **Python Version Mismatch**: Ensure Python 3.11.9 is used. Update PATH if multiple versions are installed.
+- **ModuleNotFoundError**: Verify `requirements.txt` installation and virtual environment activation.
+- **FileNotFoundError**: Check that datasets are in `data/raw/` with correct names.
+- **Permission Issues**: Run PowerShell/Command Prompt as Administrator.
 
 ### Running the Pipeline
 
-Execute the scripts in order:
+Execute scripts in order to process data and generate outputs:
 
 1. **Preprocess Data**:
    ```bash
    python src/data_preprocessing.py
    ```
-   - Cleans data, removes duplicates, converts timestamps, and merges IP data.
+   - Cleans data, removes duplicates, converts timestamps, and maps IP addresses to countries.
+   - Outputs: `data/processed/Fraud_Data_cleaned.csv`, `creditcard_cleaned.csv`, `IpAddress_to_Country_cleaned.csv`.
 
 2. **Engineer Features**:
    ```bash
    python src/feature_engineering.py
    ```
    - Creates features like `hour_of_day`, `time_since_signup`, and `transaction_velocity`.
+   - Output: `data/processed/Fraud_Data_engineered.csv`.
 
 3. **Transform Data**:
    ```bash
    python src/data_transformation.py
    ```
-   - Applies SMOTE, scales numerical features, and encodes categorical features.
+   - Applies SMOTE for class imbalance, scales numerical features, and encodes categorical features.
+   - Outputs: Train/test splits (e.g., `data/processed/X_fraud_train_smote.csv`).
 
 4. **Run EDA**:
    ```bash
    jupyter notebook notebooks/eda_notebook.ipynb
    ```
-   - Generates visualizations (e.g., purchase value distributions, fraud class boxplots).
+   - Generates visualizations (e.g., `purchase_value_dist.png`) in `data/processed/`.
+   - Run all cells in the notebook to view distributions and fraud patterns.
 
 5. **Run Tests**:
    ```bash
    pytest tests/ -v
    ```
-   - Ensures code quality with unit tests.
+   - Verifies preprocessing and feature engineering with unit tests.
+   - Expected: All tests pass (e.g., `3 passed`).
 
 ### Outputs
 
 - **Processed Data**: Saved in `data/processed/` (e.g., `Fraud_Data_cleaned.csv`, `X_fraud_train_smote.csv`).
-- **EDA Plots**: Saved in `data/processed/` (e.g., `purchase_value_dist.png`).
+- **EDA Plots**: Saved in `data/processed/` (e.g., `purchase_value_dist.png`, `amount_by_class.png`).
+- **Report**: [Fraud_Detection_Report.md](Fraud_Detection_Report.md) details preprocessing, EDA, and more.
 
 ---
 
@@ -140,6 +185,8 @@ Execute the scripts in order:
 
 - **EDA**:
   - Visualizes transaction amounts, purchase values, and fraud distributions.
+
+- **Project Report**: [Detailed Report](Fraud_Detection_Report.md) covering preprocessing, EDA, feature engineering, and class imbalance.
 
 ---
 
