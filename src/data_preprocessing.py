@@ -1,10 +1,13 @@
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
 def load_data(file_path):
+    """Load CSV file into a pandas DataFrame."""
     return pd.read_csv(file_path)
 
 def handle_missing_values(df, strategy='drop'):
+    """Handle missing values in the dataset."""
     print("Missing values before handling:\n", df.isnull().sum())
     if strategy == 'drop':
         df = df.dropna()
@@ -16,24 +19,32 @@ def handle_missing_values(df, strategy='drop'):
     print("Missing values after handling:\n", df.isnull().sum())
     return df
 
-def clean_data(df):
-    print(f"Number of duplicates before: {df.duplicated().sum()}")
-    df = df.drop_duplicates().copy()
-    print(f"Number of duplicates after: {df.duplicated().sum()}")
-    
-    if 'signup_time' in df.columns:
-        print(f"Sample signup_time before conversion: {df['signup_time'].head().tolist()}")
-        df['signup_time'] = pd.to_datetime(df['signup_time'], errors='coerce').astype('datetime64[ns]')
-        print(f"signup_time dtype after conversion: {df['signup_time'].dtype}")
-        print(f"NaTs in signup_time after conversion: {df['signup_time'].isna().sum()}")
-    if 'purchase_time' in df.columns:
-        print(f"Sample purchase_time before conversion: {df['purchase_time'].head().tolist()}")
-        df['purchase_time'] = pd.to_datetime(df['purchase_time'], errors='coerce').astype('datetime64[ns]')
-        print(f"purchase_time dtype after conversion: {df['purchase_time'].dtype}")
-        print(f"NaTs in purchase_time after conversion: {df['purchase_time'].isna().sum()}")
+def preprocess_timestamps(df):
+    """Convert timestamp columns to numerical features and drop originals."""
+    for col in ['signup_time', 'purchase_time']:
+        if col in df.columns:
+            print(f"Sample {col} before conversion: {df[col].head().tolist()}")
+            df[col] = pd.to_datetime(df[col], errors='coerce')
+            df[f'{col}_hour'] = df[col].dt.hour
+            df[f'{col}_day'] = df[col].dt.day
+            df[f'{col}_month'] = df[col].dt.month
+            df[f'{col}_weekday'] = df[col].dt.weekday
+            df = df.drop(columns=[col])
+            print(f"{col} dtype after conversion: {df[f'{col}_hour'].dtype}")
+            print(f"NaTs in {col}_hour after conversion: {df[f'{col}_hour'].isna().sum()}")
+    return df
+
+def encode_categorical(df, target_column):
+    """Encode categorical columns using LabelEncoder, excluding target."""
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    categorical_cols = [col for col in categorical_cols if col != target_column]
+    le = LabelEncoder()
+    for col in categorical_cols:
+        df[col] = le.fit_transform(df[col].astype(str))
     return df
 
 def convert_ip_to_int(ip):
+    """Convert IP address to integer."""
     try:
         if isinstance(ip, str):
             parts = ip.split('.')
@@ -47,6 +58,7 @@ def convert_ip_to_int(ip):
         return np.nan
 
 def merge_with_ip_data(fraud_data, ip_data):
+    """Merge fraud data with IP-to-country data."""
     print("Converting IP addresses...")
     fraud_data['ip_address_int'] = fraud_data['ip_address'].apply(convert_ip_to_int)
     print(f"NaNs in ip_address_int: {fraud_data['ip_address_int'].isna().sum()}")
@@ -74,26 +86,38 @@ def merge_with_ip_data(fraud_data, ip_data):
     print(f"Unique countries after consolidation: {merged_data['country'].nunique()}")
     print(f"NaNs in country after merge: {merged_data['country'].isna().sum()}")
     
-    return merged_data.drop(columns=['ip_address_int'])
+    return merged_data.drop(columns=['ip_address_int', 'ip_address'])
 
-def main():
-    fraud_data = load_data('C:\\Users\\Skyline\\Improved detection of fraud cases\\data\\raw\\Fraud_Data.csv')
-    creditcard_data = load_data('C:\\Users\\Skyline\\Improved detection of fraud cases\\data\\raw\\creditcard.csv')
-    ip_data = load_data('C:\\Users\\Skyline\\Improved detection of fraud cases\\data\\raw\\IpAddress_to_Country.csv')
+def clean_data(df, target_column):
+    """Clean data: handle duplicates, timestamps, and categorical encoding."""
+    print(f"Number of duplicates before: {df.duplicated().sum()}")
+    df = df.drop_duplicates().copy()
+    print(f"Number of duplicates after: {df.duplicated().sum()}")
     
-    fraud_data = handle_missing_values(fraud_data, strategy='impute')
-    creditcard_data = handle_missing_values(creditcard_data, strategy='drop')
+    df = preprocess_timestamps(df)
+    df = encode_categorical(df, target_column)
+    return df
+
+def preprocess_datasets():
+    """Preprocess Fraud_Data and creditcard datasets."""
+    datasets = [
+        ('data/raw/Fraud_Data.csv', 'data/processed/cleaned_fraud_data.csv', 'class'),
+        ('data/raw/creditcard.csv', 'data/processed/cleaned_creditcard.csv', 'Class')
+    ]
+    
+    ip_data = load_data('data/raw/IpAddress_to_Country.csv')
     ip_data = handle_missing_values(ip_data, strategy='impute')
+    ip_data = clean_data(ip_data, None)
+    ip_data.to_csv('data/processed/IpAddress_to_Country_cleaned.csv', index=False)
     
-    fraud_data = clean_data(fraud_data)
-    creditcard_data = clean_data(creditcard_data)
-    ip_data = clean_data(ip_data)
-    
-    fraud_data = merge_with_ip_data(fraud_data, ip_data)
-    
-    fraud_data.to_csv('C:\\Users\\Skyline\\Improved detection of fraud cases\\data\\processed\\Fraud_Data_cleaned.csv', index=False)
-    creditcard_data.to_csv('C:\\Users\\Skyline\\Improved detection of fraud cases\\data\\processed\\creditcard_cleaned.csv', index=False)
-    ip_data.to_csv('C:\\Users\\Skyline\\Improved detection of fraud cases\\data\\processed\\IpAddress_to_Country_cleaned.csv', index=False)
+    for input_path, output_path, target_column in datasets:
+        df = load_data(input_path)
+        df = handle_missing_values(df, strategy='impute' if 'Fraud_Data' in input_path else 'drop')
+        if 'Fraud_Data' in input_path:
+            df = merge_with_ip_data(df, ip_data)
+        df = clean_data(df, target_column)
+        df.to_csv(output_path, index=False)
+        print(f"Preprocessed {input_path} and saved to {output_path}")
 
 if __name__ == "__main__":
-    main()
+    preprocess_datasets()

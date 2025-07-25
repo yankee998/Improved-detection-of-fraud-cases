@@ -2,11 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   test:
@@ -23,4 +21,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run tests
-      run: pytest tests/ -v
+      working-directory: .
+      run: pytest tests/
+    - name: Run preprocessing
+      working-directory: .
+      run: python src/data_preprocessing.py
+    - name: Run model training
+      working-directory: .
+      run: python src/model_training.py
+    - name: Check output files
+      run: |
+        test -f data/processed/model_results.csv
+        test -f data/processed/plots/cm_LogisticRegression_Fraud_Data.png
