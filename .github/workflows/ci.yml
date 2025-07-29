@@ -26,10 +26,17 @@ jobs:
     - name: Run preprocessing
       working-directory: .
       run: python src/data_preprocessing.py
+    - name: Run feature engineering
+      working-directory: .
+      run: python src/feature_engineering.py
     - name: Run model training
       working-directory: .
       run: python src/model_training.py
+    - name: Run model explainability
+      working-directory: .
+      run: python src/model_explainability.py
     - name: Check output files
       run: |
         test -f data/processed/model_results.csv
         test -f data/processed/plots/cm_LogisticRegression_Fraud_Data.png
+        test -f data/processed/plots/shap_summary_Fraud_Data.png
